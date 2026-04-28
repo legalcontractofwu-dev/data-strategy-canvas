@@ -26,11 +26,30 @@
 
     <style>
         body { background-color: #f1f5f9; }
-        textarea::-webkit-scrollbar { width: 8px; }
-        textarea::-webkit-scrollbar-track { background: transparent; }
-        textarea::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
-        textarea { resize: none; transition: all 0.2s ease; }
-        textarea:focus { background-color: rgba(255, 255, 255, 0.95); box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05); outline: none; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+        
+        /* Content Editable Div Styles (Rich Text Replacement for Textarea) */
+        [contenteditable="true"] { 
+            transition: all 0.2s ease; 
+            white-space: pre-wrap; 
+            word-break: break-word; 
+        }
+        [contenteditable="true"]:focus { 
+            background-color: rgba(255, 255, 255, 0.95); 
+            box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05); 
+            outline: none; 
+        }
+        /* Placeholder for Content Editable */
+        [contenteditable="true"]:empty:before {
+            content: attr(placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+            display: block; /* For Firefox */
+        }
 
         @media print {
             body { background-color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -38,7 +57,7 @@
             .print-full { height: auto !important; min-height: 150px; }
             .canvas-container { gap: 2px !important; padding: 0 !important; }
             .card-panel { border: 1px solid #e2e8f0; box-shadow: none !important; break-inside: avoid; }
-            textarea { overflow: hidden !important; height: auto !important; min-height: 80px !important; border: none !important; background: transparent !important; }
+            [contenteditable="true"] { overflow: visible !important; height: auto !important; min-height: 80px !important; border: none !important; background: transparent !important; }
             table { border-collapse: collapse !important; width: 100% !important; }
             th, td { border: 1px solid #e2e8f0 !important; }
             #tableView { border: none !important; box-shadow: none !important; }
@@ -48,7 +67,7 @@
 <body class="text-slate-800 antialiased h-screen flex flex-col">
 
     <!-- Header / Toolbar -->
-    <header class="bg-brand-dark text-white p-4 shadow-md no-print flex-shrink-0 z-10 sticky top-0">
+    <header class="bg-brand-dark text-white p-4 shadow-md no-print flex-shrink-0 z-20 sticky top-0">
         <div class="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h1 class="text-xl md:text-2xl font-semibold flex items-center gap-2">
@@ -102,6 +121,33 @@
         </div>
     </header>
 
+    <!-- Rich Text Formatting Toolbar -->
+    <div class="bg-white border-b border-slate-200 p-2.5 flex flex-wrap justify-center gap-3 no-print shadow-sm sticky top-[92px] md:top-[88px] z-10 w-full">
+        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+            <!-- Use onmousedown with preventDefault so the editor doesn't lose focus -->
+            <button onmousedown="event.preventDefault(); formatText('bold')" class="p-1.5 hover:bg-slate-200 rounded text-slate-700 transition-colors font-bold" title="ตัวหนา (Bold)"><i class="ph ph-text-b text-lg"></i></button>
+            <button onmousedown="event.preventDefault(); formatText('underline')" class="p-1.5 hover:bg-slate-200 rounded text-slate-700 transition-colors underline" title="ขีดเส้นใต้ (Underline)"><i class="ph ph-text-underline text-lg"></i></button>
+        </div>
+        
+        <div class="flex items-center gap-2 bg-slate-100 p-1.5 px-3 rounded-lg border border-slate-200">
+            <i class="ph ph-palette text-lg text-slate-600"></i>
+            <span class="text-sm text-slate-600 font-medium">สีข้อความ:</span>
+            <input type="color" onchange="formatText('foreColor', this.value)" class="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent" title="เลือกสีข้อความ">
+        </div>
+
+        <div class="flex items-center gap-2 bg-slate-100 p-1.5 px-3 rounded-lg border border-slate-200">
+            <i class="ph ph-text-t text-lg text-slate-600"></i>
+            <span class="text-sm text-slate-600 font-medium">ขนาด:</span>
+            <select onchange="formatText('fontSize', this.value)" class="bg-transparent border-none text-sm text-slate-700 outline-none cursor-pointer font-medium">
+                <option value="3">ปกติ (Normal)</option>
+                <option value="4">ใหญ่ (Large)</option>
+                <option value="5">ใหญ่มาก (X-Large)</option>
+                <option value="6">หัวข้อ (Heading)</option>
+                <option value="2">เล็ก (Small)</option>
+            </select>
+        </div>
+    </div>
+
     <!-- Main Content Area -->
     <main class="flex-grow p-4 md:p-8 overflow-auto">
         <div class="max-w-[1800px] mx-auto h-full flex flex-col relative">
@@ -117,7 +163,7 @@
                         <h2 class="font-bold text-orange-900 flex items-center gap-2 text-lg"><i class="ph ph-warning-circle text-2xl"></i> ปัญหา (Problem)</h2>
                         <p class="text-sm text-orange-800 mt-1.5 font-medium">ปัญหาคืออะไร? ทำไมต้องแก้ไขด้วยข้อมูล CCTV?</p>
                     </div>
-                    <textarea id="problem_card" data-field="problem" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 placeholder-slate-400 rounded-b-2xl leading-relaxed" placeholder="- ระบุปัญหาที่พบ..."></textarea>
+                    <div id="problem_card" data-field="problem" contenteditable="true" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 rounded-b-2xl leading-relaxed overflow-y-auto" placeholder="- ระบุปัญหาที่พบ..."></div>
                 </div>
 
                 <!-- 2. Stakeholders -->
@@ -126,7 +172,7 @@
                         <h2 class="font-bold text-red-900 flex items-center gap-2 text-lg"><i class="ph ph-users-three text-2xl"></i> ผู้มีส่วนได้ส่วนเสีย</h2>
                         <p class="text-sm text-red-800 mt-1.5 font-medium">ใครคือผู้ที่เกี่ยวข้องและได้รับผลกระทบ?</p>
                     </div>
-                    <textarea id="stakeholders_card" data-field="stakeholders" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 placeholder-slate-400 rounded-b-2xl leading-relaxed" placeholder="- หน่วยงานที่ 1..."></textarea>
+                    <div id="stakeholders_card" data-field="stakeholders" contenteditable="true" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 rounded-b-2xl leading-relaxed overflow-y-auto" placeholder="- หน่วยงานที่ 1..."></div>
                 </div>
 
                 <!-- 3. Data -->
@@ -135,7 +181,7 @@
                         <h2 class="font-bold text-pink-900 flex items-center gap-2 text-lg"><i class="ph ph-database text-2xl"></i> ข้อมูล (Data)</h2>
                         <p class="text-sm text-pink-800 mt-1.5 font-medium">ข้อมูลอะไรบ้างที่ต้องใช้? เอามาจากไหน?</p>
                     </div>
-                    <textarea id="data_card" data-field="data" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 placeholder-slate-400 rounded-b-2xl leading-relaxed" placeholder="- ข้อมูลประเภทที่ 1..."></textarea>
+                    <div id="data_card" data-field="data" contenteditable="true" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 rounded-b-2xl leading-relaxed overflow-y-auto" placeholder="- ข้อมูลประเภทที่ 1..."></div>
                 </div>
 
                 <!-- 4. KPIs -->
@@ -144,7 +190,7 @@
                         <h2 class="font-bold text-cyan-900 flex items-center gap-2 text-lg"><i class="ph ph-chart-line-up text-2xl"></i> ตัวชี้วัด (KPIs)</h2>
                         <p class="text-sm text-cyan-800 mt-1.5 font-medium">วัดผลสำเร็จได้อย่างไร?</p>
                     </div>
-                    <textarea id="kpis_card" data-field="kpis" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 placeholder-slate-400 rounded-b-2xl leading-relaxed" placeholder="- ตัวชี้วัดที่ 1..."></textarea>
+                    <div id="kpis_card" data-field="kpis" contenteditable="true" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 rounded-b-2xl leading-relaxed overflow-y-auto" placeholder="- ตัวชี้วัดที่ 1..."></div>
                 </div>
 
                 <!-- 5. Users -->
@@ -153,7 +199,7 @@
                         <h2 class="font-bold text-rose-900 flex items-center gap-2 text-lg"><i class="ph ph-user-focus text-2xl"></i> กลุ่มเป้าหมาย (Users)</h2>
                         <p class="text-sm text-rose-800 mt-1.5 font-medium">ใครคือผู้ใช้งานข้อมูลนี้?</p>
                     </div>
-                    <textarea id="users_card" data-field="users" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 placeholder-slate-400 rounded-b-2xl leading-relaxed" placeholder="- กลุ่มผู้ใช้งานที่ 1..."></textarea>
+                    <div id="users_card" data-field="users" contenteditable="true" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 rounded-b-2xl leading-relaxed overflow-y-auto" placeholder="- กลุ่มผู้ใช้งานที่ 1..."></div>
                 </div>
 
                 <!-- 6. Solution / Approach -->
@@ -162,7 +208,7 @@
                         <h2 class="font-bold text-slate-800 flex items-center gap-2 text-lg"><i class="ph ph-lightbulb text-2xl"></i> แนวทางการทำงาน (Solution)</h2>
                         <p class="text-sm text-slate-700 mt-1.5 font-medium">จะนำข้อมูลไปประมวลผลอย่างไรให้เกิดคุณค่า?</p>
                     </div>
-                    <textarea id="solution_card" data-field="solution" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 placeholder-slate-400 rounded-b-2xl leading-relaxed" placeholder="- วิธีการประมวลผล..."></textarea>
+                    <div id="solution_card" data-field="solution" contenteditable="true" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 rounded-b-2xl leading-relaxed overflow-y-auto" placeholder="- วิธีการประมวลผล..."></div>
                 </div>
 
                 <!-- 7. Business Value -->
@@ -171,7 +217,7 @@
                         <h2 class="font-bold text-blue-900 flex items-center gap-2 text-lg"><i class="ph ph-currency-circle-dollar text-2xl"></i> มูลค่าทางธุรกิจ</h2>
                         <p class="text-sm text-blue-800 mt-1.5 font-medium">ประโยชน์ที่องค์กรจะได้รับคืออะไร?</p>
                     </div>
-                    <textarea id="businessValue_card" data-field="businessValue" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 placeholder-slate-400 rounded-b-2xl leading-relaxed" placeholder="- ผลตอบแทนที่คาดหวัง..."></textarea>
+                    <div id="businessValue_card" data-field="businessValue" contenteditable="true" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 rounded-b-2xl leading-relaxed overflow-y-auto" placeholder="- ผลตอบแทนที่คาดหวัง..."></div>
                 </div>
 
                 <!-- 8. Risks -->
@@ -180,7 +226,7 @@
                         <h2 class="font-bold text-sky-900 flex items-center gap-2 text-lg"><i class="ph ph-shield-warning text-2xl"></i> ความเสี่ยง (Risks)</h2>
                         <p class="text-sm text-sky-800 mt-1.5 font-medium">ความเสี่ยงและข้อควรระวัง (เช่น PDPA)?</p>
                     </div>
-                    <textarea id="risks_card" data-field="risks" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 placeholder-slate-400 rounded-b-2xl leading-relaxed" placeholder="- ความเสี่ยงด้าน PDPA..."></textarea>
+                    <div id="risks_card" data-field="risks" contenteditable="true" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 rounded-b-2xl leading-relaxed overflow-y-auto" placeholder="- ความเสี่ยงด้าน PDPA..."></div>
                 </div>
 
                 <!-- 9. Execution -->
@@ -189,7 +235,7 @@
                         <h2 class="font-bold text-amber-900 flex items-center gap-2 text-lg"><i class="ph ph-arrows-clockwise text-2xl"></i> การจัดการ (Execution)</h2>
                         <p class="text-sm text-amber-800 mt-1.5 font-medium">ขั้นตอนการนำไปปฏิบัติจริง?</p>
                     </div>
-                    <textarea id="execution_card" data-field="execution" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 placeholder-slate-400 rounded-b-2xl leading-relaxed" placeholder="- ระยะที่ 1: ..."></textarea>
+                    <div id="execution_card" data-field="execution" contenteditable="true" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 rounded-b-2xl leading-relaxed overflow-y-auto" placeholder="- ระยะที่ 1: ..."></div>
                 </div>
 
                 <!-- 10. Business Strategic Imperatives -->
@@ -198,7 +244,7 @@
                         <h2 class="font-bold text-slate-800 flex items-center gap-2 text-lg"><i class="ph ph-target text-2xl"></i> เป้าหมายเชิงกลยุทธ์ของธุรกิจ (Strategic Imperatives)</h2>
                         <p class="text-sm text-slate-700 mt-1.5 font-medium">สอดคล้องกับเป้าหมายใหญ่ขององค์กรอย่างไร?</p>
                     </div>
-                    <textarea id="strategic_card" data-field="strategic" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 placeholder-slate-400 rounded-b-2xl leading-relaxed" placeholder="- ตอบโจทย์กลยุทธ์องค์กรด้าน..."></textarea>
+                    <div id="strategic_card" data-field="strategic" contenteditable="true" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 rounded-b-2xl leading-relaxed overflow-y-auto" placeholder="- ตอบโจทย์กลยุทธ์องค์กรด้าน..."></div>
                 </div>
 
                 <!-- 11. Communication -->
@@ -207,7 +253,7 @@
                         <h2 class="font-bold text-purple-900 flex items-center gap-2 text-lg"><i class="ph ph-megaphone text-2xl"></i> การสื่อสาร (Communication)</h2>
                         <p class="text-sm text-purple-800 mt-1.5 font-medium">จะสื่อสารเรื่องนี้ให้ผู้เกี่ยวข้องทราบอย่างไร?</p>
                     </div>
-                    <textarea id="communication_card" data-field="communication" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 placeholder-slate-400 rounded-b-2xl leading-relaxed" placeholder="- แผนการสื่อสาร..."></textarea>
+                    <div id="communication_card" data-field="communication" contenteditable="true" class="w-full flex-grow p-5 bg-transparent border-none text-base text-slate-800 rounded-b-2xl leading-relaxed overflow-y-auto" placeholder="- แผนการสื่อสาร..."></div>
                 </div>
 
             </div>
@@ -233,7 +279,7 @@
                                     <p class="text-sm text-slate-600 mt-2">ปัญหาคืออะไร? ทำไมต้องแก้ไขด้วยข้อมูล CCTV?</p>
                                 </td>
                                 <td class="p-4 align-top">
-                                    <textarea id="problem_table" data-field="problem" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none text-base text-slate-800 placeholder-slate-400 shadow-inner" placeholder="- ระบุปัญหาที่พบ..."></textarea>
+                                    <div id="problem_table" data-field="problem" contenteditable="true" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none text-base text-slate-800 shadow-inner overflow-auto" placeholder="- ระบุปัญหาที่พบ..."></div>
                                 </td>
                             </tr>
                             
@@ -244,7 +290,7 @@
                                     <p class="text-sm text-slate-600 mt-2">ใครคือผู้ที่เกี่ยวข้องและได้รับผลกระทบ?</p>
                                 </td>
                                 <td class="p-4 align-top">
-                                    <textarea id="stakeholders_table" data-field="stakeholders" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 outline-none text-base text-slate-800 placeholder-slate-400 shadow-inner" placeholder="- หน่วยงานที่ 1..."></textarea>
+                                    <div id="stakeholders_table" data-field="stakeholders" contenteditable="true" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-400 outline-none text-base text-slate-800 shadow-inner overflow-auto" placeholder="- หน่วยงานที่ 1..."></div>
                                 </td>
                             </tr>
 
@@ -255,7 +301,7 @@
                                     <p class="text-sm text-slate-600 mt-2">ข้อมูลอะไรบ้างที่ต้องใช้? เอามาจากไหน?</p>
                                 </td>
                                 <td class="p-4 align-top">
-                                    <textarea id="data_table" data-field="data" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-pink-400 outline-none text-base text-slate-800 placeholder-slate-400 shadow-inner" placeholder="- ข้อมูลประเภทที่ 1..."></textarea>
+                                    <div id="data_table" data-field="data" contenteditable="true" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-pink-400 outline-none text-base text-slate-800 shadow-inner overflow-auto" placeholder="- ข้อมูลประเภทที่ 1..."></div>
                                 </td>
                             </tr>
 
@@ -266,7 +312,7 @@
                                     <p class="text-sm text-slate-600 mt-2">วัดผลสำเร็จได้อย่างไร?</p>
                                 </td>
                                 <td class="p-4 align-top">
-                                    <textarea id="kpis_table" data-field="kpis" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-cyan-400 outline-none text-base text-slate-800 placeholder-slate-400 shadow-inner" placeholder="- ตัวชี้วัดที่ 1..."></textarea>
+                                    <div id="kpis_table" data-field="kpis" contenteditable="true" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-cyan-400 outline-none text-base text-slate-800 shadow-inner overflow-auto" placeholder="- ตัวชี้วัดที่ 1..."></div>
                                 </td>
                             </tr>
 
@@ -277,7 +323,7 @@
                                     <p class="text-sm text-slate-600 mt-2">ใครคือผู้ใช้งานข้อมูลนี้?</p>
                                 </td>
                                 <td class="p-4 align-top">
-                                    <textarea id="users_table" data-field="users" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none text-base text-slate-800 placeholder-slate-400 shadow-inner" placeholder="- กลุ่มผู้ใช้งานที่ 1..."></textarea>
+                                    <div id="users_table" data-field="users" contenteditable="true" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none text-base text-slate-800 shadow-inner overflow-auto" placeholder="- กลุ่มผู้ใช้งานที่ 1..."></div>
                                 </td>
                             </tr>
 
@@ -288,7 +334,7 @@
                                     <p class="text-sm text-slate-600 mt-2">จะนำข้อมูลไปประมวลผลอย่างไรให้เกิดคุณค่า?</p>
                                 </td>
                                 <td class="p-4 align-top">
-                                    <textarea id="solution_table" data-field="solution" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-400 outline-none text-base text-slate-800 placeholder-slate-400 shadow-inner" placeholder="- วิธีการประมวลผล..."></textarea>
+                                    <div id="solution_table" data-field="solution" contenteditable="true" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-400 outline-none text-base text-slate-800 shadow-inner overflow-auto" placeholder="- วิธีการประมวลผล..."></div>
                                 </td>
                             </tr>
 
@@ -299,7 +345,7 @@
                                     <p class="text-sm text-slate-600 mt-2">ประโยชน์ที่องค์กรจะได้รับคืออะไร?</p>
                                 </td>
                                 <td class="p-4 align-top">
-                                    <textarea id="businessValue_table" data-field="businessValue" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none text-base text-slate-800 placeholder-slate-400 shadow-inner" placeholder="- ผลตอบแทนที่คาดหวัง..."></textarea>
+                                    <div id="businessValue_table" data-field="businessValue" contenteditable="true" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none text-base text-slate-800 shadow-inner overflow-auto" placeholder="- ผลตอบแทนที่คาดหวัง..."></div>
                                 </td>
                             </tr>
 
@@ -310,7 +356,7 @@
                                     <p class="text-sm text-slate-600 mt-2">ความเสี่ยงและข้อควรระวัง (เช่น PDPA)?</p>
                                 </td>
                                 <td class="p-4 align-top">
-                                    <textarea id="risks_table" data-field="risks" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-400 outline-none text-base text-slate-800 placeholder-slate-400 shadow-inner" placeholder="- ความเสี่ยงด้าน PDPA..."></textarea>
+                                    <div id="risks_table" data-field="risks" contenteditable="true" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-400 outline-none text-base text-slate-800 shadow-inner overflow-auto" placeholder="- ความเสี่ยงด้าน PDPA..."></div>
                                 </td>
                             </tr>
 
@@ -321,7 +367,7 @@
                                     <p class="text-sm text-slate-600 mt-2">ขั้นตอนการนำไปปฏิบัติจริง?</p>
                                 </td>
                                 <td class="p-4 align-top">
-                                    <textarea id="execution_table" data-field="execution" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-400 outline-none text-base text-slate-800 placeholder-slate-400 shadow-inner" placeholder="- ระยะที่ 1: ..."></textarea>
+                                    <div id="execution_table" data-field="execution" contenteditable="true" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-400 outline-none text-base text-slate-800 shadow-inner overflow-auto" placeholder="- ระยะที่ 1: ..."></div>
                                 </td>
                             </tr>
 
@@ -332,7 +378,7 @@
                                     <p class="text-sm text-slate-600 mt-2">สอดคล้องกับเป้าหมายใหญ่ขององค์กรอย่างไร?</p>
                                 </td>
                                 <td class="p-4 align-top">
-                                    <textarea id="strategic_table" data-field="strategic" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-400 outline-none text-base text-slate-800 placeholder-slate-400 shadow-inner" placeholder="- ตอบโจทย์กลยุทธ์องค์กรด้าน..."></textarea>
+                                    <div id="strategic_table" data-field="strategic" contenteditable="true" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-400 outline-none text-base text-slate-800 shadow-inner overflow-auto" placeholder="- ตอบโจทย์กลยุทธ์องค์กรด้าน..."></div>
                                 </td>
                             </tr>
 
@@ -343,7 +389,7 @@
                                     <p class="text-sm text-slate-600 mt-2">จะสื่อสารเรื่องนี้ให้ผู้เกี่ยวข้องทราบอย่างไร?</p>
                                 </td>
                                 <td class="p-4 align-top">
-                                    <textarea id="communication_table" data-field="communication" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-400 outline-none text-base text-slate-800 placeholder-slate-400 shadow-inner" placeholder="- แผนการสื่อสาร..."></textarea>
+                                    <div id="communication_table" data-field="communication" contenteditable="true" class="w-full min-h-[120px] p-4 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-400 outline-none text-base text-slate-800 shadow-inner overflow-auto" placeholder="- แผนการสื่อสาร..."></div>
                                 </td>
                             </tr>
 
@@ -421,18 +467,27 @@
             solidDot.className = `relative inline-flex rounded-full h-2 w-2 ${colorMap[colorKey].solid}`;
         }
 
-        // --- Helper Function for 2-Way Binding ---
-        // Updates both Card and Table views to keep them identical
+        // --- Rich Text Formatting ---
+        window.formatText = (command, value = null) => {
+            document.execCommand(command, false, value);
+            // Trigger input event to sync data
+            const activeEl = document.activeElement;
+            if (activeEl && activeEl.hasAttribute('contenteditable')) {
+                activeEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        };
+
+        // --- Helper Function for 2-Way Binding (Rich Text) ---
         function updateTextareas(field, value) {
             const cardEl = document.getElementById(`${field}_card`);
             const tableEl = document.getElementById(`${field}_table`);
-            if (cardEl && cardEl.value !== value) cardEl.value = value;
-            if (tableEl && tableEl.value !== value) tableEl.value = value;
+            if (cardEl && cardEl.innerHTML !== value) cardEl.innerHTML = value;
+            if (tableEl && tableEl.innerHTML !== value) tableEl.innerHTML = value;
         }
 
         function getFieldValue(field) {
             const el = document.getElementById(`${field}_card`);
-            return el ? el.value : '';
+            return el ? el.innerHTML : '';
         }
 
         // Firebase State
@@ -488,7 +543,7 @@
                     fields.forEach(field => {
                         const val = data[field] !== undefined ? data[field] : '';
                         const currentVal = getFieldValue(field);
-                        // อัปเดตถ้าข้อมูลในฐานข้อมูลไม่ตรงกับหน้าจอ และผู้ใช้ไม่ได้ Focus อยู่ที่ช่องนั้น
+                        // Update if data in database doesn't match and user is not focused on this field
                         const isFocused = document.activeElement.dataset?.field === field;
                         if (currentVal !== val && !isFocused) {
                             updateTextareas(field, val);
@@ -502,12 +557,12 @@
             });
         }
 
-        // Auto-save logic (Event Delegation)
+        // Auto-save logic (Event Delegation for contenteditable divs)
         let debounceTimer;
-        document.querySelectorAll('textarea[data-field]').forEach(el => {
+        document.querySelectorAll('div[contenteditable="true"][data-field]').forEach(el => {
             el.addEventListener('input', (e) => {
                 const field = e.target.dataset.field;
-                const val = e.target.value;
+                const val = e.target.innerHTML; // Use innerHTML to save formatting
 
                 // Sync the alternate view instantly
                 updateTextareas(field, val);
@@ -665,7 +720,8 @@
                 fields.forEach(field => {
                     if (dataToSave[field]) {
                         const currentVal = getFieldValue(field);
-                        const newVal = currentVal.trim() ? currentVal + '\n\n[ดึงจาก PPTX]:\n' + dataToSave[field] : dataToSave[field];
+                        // Add <br><br> and Bold Tag for PPTX Imports because we are using HTML now
+                        const newVal = currentVal.trim() ? currentVal + '<br><br><b>[ดึงจาก PPTX]:</b><br>' + dataToSave[field] : dataToSave[field];
                         updateTextareas(field, newVal);
                         localStorage.setItem(STORAGE_PREFIX + field, newVal);
                     }
@@ -739,16 +795,6 @@
                 updateStatus("ล้างข้อมูลเรียบร้อย", "green");
             }
         };
-
-        // Auto Expand Height for Printing
-        window.addEventListener('beforeprint', () => {
-            document.querySelectorAll('textarea').forEach(ta => {
-                if(ta.value.trim() !== '') ta.style.height = ta.scrollHeight + 'px';
-            });
-        });
-        window.addEventListener('afterprint', () => {
-             document.querySelectorAll('textarea').forEach(ta => ta.style.height = 'auto');
-        });
 
         // Initialize App
         window.onload = initFirebase;
